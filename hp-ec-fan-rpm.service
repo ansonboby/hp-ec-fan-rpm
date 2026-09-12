@@ -1,0 +1,13 @@
+[Unit]
+Description=HP 250 G9 EC fan RPM publisher (firmware WMI fan query is broken)
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStartPre=/sbin/modprobe ec_sys
+ExecStart=/usr/local/bin/hp-ec-fan-rpm
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,24 @@
+#!/bin/bash
+# HP 250 G9 fan RPM publisher.
+# The firmware zeroes the WMI fan-speed response (kernel bug 221149), so
+# hp-wmi's fan1_input/fan2_input permanently read 0 RPM. This daemon reads
+# the real tach value from the Insyde EC (register 0x11, RPM x 100) via the
+# kernel's ec_sys interface and publishes it to /run/hp-fan-rpm for the
+# Omarchy activity-monitor widget.
+#
+# Runs as root (system service). ec_sys is loaded WITHOUT write support,
+# so this is strictly read-only EC access.
+
+ECIO=/sys/kernel/debug/ec/ec0/io
+OUT=/run/hp-fan-rpm
+
+while true; do
+  if [ -r "$ECIO" ]; then
+    v=$(dd if="$ECIO" bs=1 skip=17 count=1 2>/dev/null | od -An -tu1 | tr -d ' \n')
+    case "$v" in
+      ''|*[!0-9]*) v=0 ;;
+    esac
+    printf '%s\n' $((v * 100)) > "${OUT}.tmp" && mv "${OUT}.tmp" "$OUT"
+  fi
+  sleep 2
+done
